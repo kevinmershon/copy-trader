@@ -52,9 +52,40 @@
                               reset-positions))]
     (assoc trader-map :open-positions positions)))
 
+(defn- order->direction
+  [order]
+  (let [{:keys [side type]} order]
+    (cond
+      (and (= "buy" side) (= "limit" type))  :long
+      (and (= "sell" side) (= "stop" type))  :long
+      (and (= "sell" side) (= "limit" type)) :short
+      (and (= "buy" side) (= "stop" type))   :short)))
+
+(defn- order->status
+  [{:keys [status] :as _order}]
+  (if (#{"accepted" "new" "partially_filled"} status)
+    :open
+    :closed))
+
+(defn- parse-order
+  [order]
+  {:symbol    (keyword (:symbol order))
+   :type      (if (= "stop" (:type order))
+                :stop-loss
+                :limit)
+   :direction (order->direction order)
+   :order-id  (:id order)
+   :volume    (Double/parseDouble (:qty order))
+   :price     (Double/parseDouble (if (= "stop" (:type order))
+                                    (:stop_price order)
+                                    (:limit_price order)))
+   :status    (order->status order)})
+
 (defmethod with-orders "alpaca"
   [trader-map]
-  trader-map)
+  (let [open-orders (driver/alpaca-get trader-map "orders")]
+    (assoc trader-map :orders (->> open-orders
+                                   (mapv parse-order)))))
 
 (defn- cancel-order!
   [{nickname :nickname :as trader-map} tx-id]
