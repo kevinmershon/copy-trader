@@ -10,9 +10,11 @@
   []
   (try
     (swap! core/state assoc :traders
-           (-> (io/file "config.json")
-               slurp
-               (parse-string true)))
+           (mapv atom
+                 (-> (io/file "config.json")
+                     slurp
+                     (parse-string true)
+                     :traders)))
     :ok
     (catch Throwable t
       (log/error t)
