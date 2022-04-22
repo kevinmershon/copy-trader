@@ -4,13 +4,14 @@
       "nickname": "My Alpaca Trader",
       "exchange": "alpaca",
       "credentials": {
-        "api_key": "YOUR_API_TOKEN",
+        "api_key":    "YOUR_API_TOKEN",
         "api_secret": "YOU_API_SECRET"
       },
-      "type":     "paper",
-      "leverage": 2.0,
-      "risk":     0.0375,
-      "shorting": false
+      "max_positions": 20,
+      "type":          "paper",
+      "leverage":      2.0,
+      "risk":          0.0375,
+      "shorting":      false
     }
   ]
 }
