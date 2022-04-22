@@ -19,3 +19,7 @@
     (catch Throwable t
       (log/error t)
       (.getMessage t))))
+
+(defn all-traders
+  []
+  (:traders @core/state))

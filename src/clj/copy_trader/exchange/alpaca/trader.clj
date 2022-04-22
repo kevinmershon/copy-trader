@@ -3,17 +3,26 @@
   (:require
    [clojure.tools.logging :as log]
    [copy-trader.exchange.alpaca.driver :as driver]
-   [copy-trader.exchange.trader :refer [compute-volume on-trade with-balance]]
+   [copy-trader.exchange.trader :refer [compute-volume on-trade with-balance with-positions with-orders]]
    [copy-trader.util :refer [to-precision]]))
 
 (defmethod with-balance "alpaca"
   [trader-map]
-  (let [balance-data (driver/alpaca-get trader-map "account")]
-    (assoc trader-map :balance-usd (-> (or (-> balance-data
-                                               :equity
-                                               Double/parseDouble)
-                                           0.0)
-                                       (to-precision 2)))))
+  (let [balance-data (driver/alpaca-get trader-map "account")
+        balance      (-> (or (-> balance-data
+                                 :equity
+                                 Double/parseDouble)
+                             0.0)
+                         (to-precision 2))]
+    (assoc trader-map :balance-usd balance)))
+
+(defmethod with-positions "alpaca"
+  [trader-map]
+  trader-map)
+
+(defmethod with-orders "alpaca"
+  [trader-map]
+  trader-map)
 
 (defn- cancel-order!
   [{nickname :nickname :as trader-map} tx-id]
@@ -31,7 +40,7 @@
 (defmethod on-trade ["alpaca" "long" "limit"]
   [{nickname :nickname :as trader-map} {:keys [symbol price stop-loss]}]
   ;; FIXME -- cancel existing long order if it exists
-  (let [volume (compute-volume trader-map)
+  (let [volume     (compute-volume trader-map price price stop-loss)
         order-data (driver/alpaca-post!
                     trader-map "orders"
                     {:symbol        symbol
@@ -53,7 +62,7 @@
         (comment "record the order")))))
 
 (defmethod on-trade ["alpaca" "long" "take-profit"]
-  [{nickname :nickname :as trader-map} {:keys [symbol percentage] :as ev}]
+  [trader-map {:keys [symbol percentage] :as ev}]
   ;; FIXME -- cancel-existing long stop-loss
   (let [volume 0] ;; FIXME -- get existing volume and multiply by percentage
     (driver/alpaca-post!
