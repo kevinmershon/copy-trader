@@ -3,7 +3,10 @@
   (:require
    [clojure.tools.logging :as log]
    [copy-trader.exchange.alpaca.driver :as driver]
-   [copy-trader.exchange.trader :refer [compute-volume on-trade with-balance with-positions with-orders]]
+   [copy-trader.exchange.trader :refer [compute-position-size
+                                        compute-volume
+                                        on-trade
+                                        with-balance with-positions with-orders]]
    [copy-trader.util :refer [to-precision]]))
 
 (defmethod with-balance "alpaca"
@@ -16,9 +19,38 @@
                          (to-precision 2))]
     (assoc trader-map :balance-usd balance)))
 
+(defn- parse-position
+  [trader-map position]
+  (let [symbol-balance (compute-position-size trader-map)
+        position-size  (Math/abs (Double/parseDouble (:qty position)))
+        position-value (Math/abs (Double/parseDouble (:market_value position)))]
+    {:symbol         (keyword (:symbol position))
+     :balance-usd    symbol-balance
+     :position-value position-value
+     :direction      (keyword (:side position))
+     :volume         position-size
+     :entry          (Double/parseDouble (:avg_entry_price position))
+     :type           :equity}))
+
 (defmethod with-positions "alpaca"
   [trader-map]
-  trader-map)
+  (let [open-positions  (driver/alpaca-get trader-map "positions")
+        reset-positions (reduce-kv
+                         (fn [m symbol position]
+                           (assoc m symbol (merge position
+                                                  {:direction :none
+                                                   :volume    0.0
+                                                   :entry     0.0})))
+                         {}
+                         (:open-positions trader-map))
+        positions       (->> open-positions
+                             (map #(parse-position trader-map %))
+                             (filter identity)
+                             (reduce
+                              (fn [m {:keys [symbol] :as position}]
+                                (assoc m symbol position))
+                              reset-positions))]
+    (assoc trader-map :open-positions positions)))
 
 (defmethod with-orders "alpaca"
   [trader-map]

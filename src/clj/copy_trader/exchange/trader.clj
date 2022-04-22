@@ -21,6 +21,25 @@
   [_]
   :not-implemented)
 
+(defn active-positions
+  [{:keys [open-positions] :as _trader-map}]
+  (reduce-kv
+   (fn [m symbol {:keys [volume]}]
+     (if (pos? volume)
+       (assoc m symbol volume)
+       m))
+   {}
+   open-positions))
+
+(defn compute-position-size
+  [{:keys [balance-usd leverage max_positions] :as trader-map}]
+  (let [active                (active-positions trader-map)
+        active-position-count (->> active keys count)]
+    (if (and (< active-position-count max_positions))
+      (/ (* balance-usd leverage)
+         max_positions)
+      0.0)))
+
 (defn compute-volume
   [{:keys [balance-usd risk] :as _trader-map} price high low]
   (let [diff                 (- high low)
