@@ -14,11 +14,13 @@
     exchange))
 
 (defmulti on-trade
-  (fn [{:keys [exchange _symbol direction order-type _price _stop-loss _percentage]}]
+  (fn [trader-map {:keys [exchange symbol direction order-type _price _stop-loss _percentage]}]
+    {:pre [(map? trader-map) (string? exchange) (string? symbol)
+           (string? direction) (string? order-type)]}
     [exchange direction order-type]))
 
 (defmethod on-trade :default
-  [_]
+  [_ _]
   :not-implemented)
 
 (defn active-positions
