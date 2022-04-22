@@ -1,0 +1,14 @@
+{
+  "traders": [
+    {
+      "nickname": "My Alpaca Trader",
+      "exchange": "alpaca",
+      "credentials": {
+        "api_key": "YOUR_API_TOKEN"
+      },
+      "type":     "paper",
+      "leverage": 2.0,
+      "shorting": false
+    }
+  ]
+}

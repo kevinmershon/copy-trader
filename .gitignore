@@ -7,3 +7,5 @@
 *.class
 *.jar
 .#*
+
+config.json
