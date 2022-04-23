@@ -175,16 +175,68 @@
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; ;;
 
 (defmethod on-trade ["alpaca" "short" "limit"]
-  [trader-map {:keys [symbol price stop-loss]}]
-  (comment
-    "place a limit short"))
+  [{nickname :nickname :as trader-map} {:keys [symbol price stop-loss]}]
+
+  ;; cancel existing short order if it exists
+  (cancel-order! trader-map {:symbol symbol :type :limit :direction :short})
+
+  (let [volume     (compute-volume trader-map price price stop-loss)
+        order-data (driver/alpaca-post!
+                    trader-map "orders"
+                    {:symbol        symbol
+                     :side          "sell"
+                     :type          "limit"
+                     :time_in_force "gtc"
+                     :limit_price   price
+                     :qty           (int volume)
+                     :order_class   "oto"
+                     :stop_loss     {:stop_price stop-loss}})]
+    (if (<= 400 (:status order-data))
+      (do
+        (log/error (format "%s: failed to open short limit for %s" nickname symbol))
+        (log/error (:body order-data)))
+      (log/info (format "%s: shorting %.2f %s at price %.2f (stop-loss at %.2f)"
+                        nickname volume symbol price stop-loss)))))
 
 (defmethod on-trade ["alpaca" "short" "take-profit"]
-  [trader-map {:keys [symbol price stop-loss percentage]}]
-  (comment
-    "cancel the current stop-loss, take profit, and open a new stop-loss"))
+  [trader-map {:keys [symbol percentage] :as ev}]
+
+  ;; cancel existing stop-loss order if it exists
+  (cancel-order! trader-map {:symbol symbol :type :stop-loss :direction :short})
+
+  (let [volume (get-in trader-map [:open-positions symbol :volume])
+        profit-volume (int (* volume percentage))
+        remaining-volume (- volume profit-volume)]
+    (driver/alpaca-post!
+     trader-map "orders"
+     {:symbol        symbol
+      :side          "buy"
+      :type          "market"
+      :time_in_force "gtc"
+      :qty           profit-volume})
+    (on-trade (assoc-in trader-map
+                        [:open-positions (keyword symbol) :volume]
+                        remaining-volume)
+              (assoc ev :order-type "stop-loss"))))
 
 (defmethod on-trade ["alpaca" "short" "stop-loss"]
-  [trader-map {:keys [symbol stop-loss]}]
-  (comment
-    "cancel the current stop-loss, and place a new one"))
+  [{nickname :nickname :as trader-map} {:keys [symbol stop-loss]}]
+
+  ;; cancel existing stop-loss order if it exists
+  (cancel-order! trader-map {:symbol symbol :type :stop-loss :direction :short})
+
+  (let [volume (get-in trader-map [:open-positions (keyword symbol) :volume])
+        order-data (driver/alpaca-post!
+                    trader-map "orders"
+                    {:symbol        symbol
+                     :side          "buy"
+                     :type          "stop"
+                     :time_in_force "gtc"
+                     :stop_price    stop-loss
+                     :qty           (int volume)})]
+    (if (<= 400 (:status order-data))
+      (do
+        (log/error (format "%s: failed to open short stop-loss for %s" nickname symbol))
+        (log/error (:body order-data)))
+      (log/info (format "%s: set %s short stop-loss to %.2f"
+                        nickname symbol stop-loss)))))
