@@ -8,6 +8,7 @@
 *.class
 *.jar
 .#*
+log
 
 config.json
 public-key.pem

@@ -78,3 +78,34 @@ Build and run with Docker / Docker-Compose
 License
 ==
 AGPLv3
+
+FAQ
+==
+1. Is this legal?
+
+    Probably, but if not someone should definitely take [these
+    guys](https://copytrader.pro/) down. In theory this is just as legal as
+    [following the trades of US Senators](https://senatestockwatcher.com/) and
+    [buying bitcoin every time Elon Musk tweets about
+    it](https://github.com/CyberPunkMetalHead/bitcoin-bot-buy-if-elon-tweets).
+
+1. Is this a good idea?
+
+    That depends entirely on whose trades you follow, and the general phase of the market at the time you start trading.
+
+1. Will I lose money?
+
+    Almost certainly at times, but if you are following a profitable trader then
+    by leveraging this or any software based approach for trade syndication, you
+    will likely make just about as much money as they do.
+
+    Be aware that up to a 20% drawdown (from highest gain) in a year is pretty
+    typical of most "safe" investment classes (e.g. Vanguard ETFs), but losing
+    90% on your account due to YOLO plays is ill advised.
+
+Similar Projects
+==
+* https://github.com/MohammedRashad/Crypto-Copy-Trader
+* https://github.com/jiowcl/MQL-CopyTrade
+* https://github.com/kr0st/trade_replicator
+* https://github.com/zignaly-open/zignaly-webapp

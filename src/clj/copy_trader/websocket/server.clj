@@ -31,7 +31,7 @@
 
 (defmethod on-event :default
   [_ws {:keys [_message-code payload]}]
-  (log/debug "Unrecognized websocket command:" payload))
+  (log/error "Unrecognized websocket command:" payload))
 
 ;; re-firing a trade signal from our server
 (defmethod ws-event/on-event :refire-trade-down
@@ -72,8 +72,8 @@
 
 (defn- on-close
   [ws status-code reason]
-  (swap! core/state update :ws-clients dissoc ws)
-  (log/debug "WebSocket client disconnected" status-code reason))
+  (log/info "WebSocket client disconnected" status-code reason)
+  (swap! core/state update :ws-clients dissoc ws))
 
 (defn- on-receive
   [ws json-message]

@@ -2,6 +2,7 @@
   (:require
    [cheshire.core :refer [parse-string generate-string]]
    [clojure.tools.logging :as log]
+   [copy-trader.config :refer [config]]
    [copy-trader.core :as core]
    [copy-trader.exchange.trader :as trader]
    [copy-trader.websocket.event :as ws-event]
@@ -34,6 +35,7 @@
 
 (defn- on-close
   [uri]
+  (log/info (format "Disconnecting from %s" uri))
   (let [socket (get-in @core/state [:clients uri])]
     (try
       (ws/close socket)
@@ -44,15 +46,30 @@
 
 (defn connect!
   [uri]
+  (log/info (format "Connecting to %s" uri))
   (when (:is-running? @core/state)
     (when-let [socket (ws/connect uri
                         :on-receive on-receive
                         :on-error on-error
                         :on-close #(on-close uri))]
-      (swap! core/state assoc-in :clients uri socket)
+      (swap! core/state assoc-in [:clients uri] socket)
       :connected)))
 
 (defn disconnect!
   [uri]
   ;; TODO -- maybe we'll want to send unsubscribe events here
   (on-close uri))
+
+(defn connect-clients!
+  []
+  (try
+    (let [client-configs (:clients (config))]
+      (doseq [{:keys [uri]} client-configs]
+        (connect! uri)))
+    :connected))
+
+(defn disconnect-clients!
+  []
+  (let [connected-clients (:clients @core/state)]
+    (doseq [[uri _socket] connected-clients]
+      (disconnect! uri))))
