@@ -13,6 +13,11 @@
 (def ^:private redis-conn {:pool {} :spec {:uri (redis-uri)}})
 (defmacro with-carmine [& body] `(car/wcar redis-conn ~@body))
 
+(defn- save!
+  []
+  (with-carmine
+    (car/save)))
+
 (defn- del!
   [key]
   (with-carmine
@@ -79,6 +84,7 @@
   [trader-map]
   (cache-orders! trader-map)
   (cache-positions! trader-map)
+  (save!)
 
   ;; return
   trader-map)

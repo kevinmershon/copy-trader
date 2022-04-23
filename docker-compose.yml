@@ -6,7 +6,7 @@ services:
     expose:
       - "6379"
     volumes:
-      - ./.redis_root:/var/lib/redis
+      - ./.redis_root:/data
 
   copy-trader:
     image:
