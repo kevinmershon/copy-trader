@@ -1,4 +1,5 @@
 .cpcache
+.redis_root
 .nrepl-port
 .DS_STORE
 .tags
