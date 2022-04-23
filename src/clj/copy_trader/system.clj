@@ -4,13 +4,15 @@
    [copy-trader.core :as core]
    [copy-trader.scheduling.scheduler :as scheduler]
    [copy-trader.scheduling.jobs :as jobs]
-   [copy-trader.websocket]))
+   [copy-trader.server :as server]
+   [copy-trader.websocket.client :as ws-client]))
 
 (defn halt
   []
   ;; FIXME
   (comment "disconnect websocket clients")
   (scheduler/halt!)
+  (server/halt!)
   (reset! core/state {:is-running? false})
   :halted)
 
@@ -18,6 +20,7 @@
   []
   (traders/load-traders!)
   (scheduler/start!)
+  (server/start!)
   (jobs/schedule-jobs!)
   (swap! core/state assoc :is-running? true)
   ;; FIXME

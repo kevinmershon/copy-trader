@@ -9,7 +9,14 @@
          org.slf4j/slf4j-log4j12   {:mvn/version "1.7.7"}
 
          ;; http
-         clj-http/clj-http {:mvn/version "3.12.3"}
+         clj-http/clj-http              {:mvn/version "3.12.3"}
+         ring/ring-core                 {:mvn/version "1.9.5"}
+         ring/ring-devel                {:mvn/version "1.9.5"}
+         ring/ring-defaults             {:mvn/version "0.3.3"}
+         buddy/buddy-auth               {:mvn/version "2.1.0"}
+         metosin/reitit                 {:mvn/version "0.5.18"}
+         metosin/muuntaja               {:mvn/version "0.6.8"}
+         info.sunng/ring-jetty9-adapter {:mvn/version "0.14.3"}
 
          ;; scheduling
          clojurewerkz/quartzite {:mvn/version "2.1.0"}

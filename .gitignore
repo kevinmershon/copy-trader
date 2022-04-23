@@ -9,3 +9,5 @@
 .#*
 
 config.json
+public-key.pem
+private-key.pem
