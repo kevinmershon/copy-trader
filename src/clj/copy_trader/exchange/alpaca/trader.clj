@@ -88,13 +88,16 @@
                                    (mapv parse-order)))))
 
 (defn- cancel-order!
-  [{nickname :nickname :as trader-map} tx-id]
-  (let [cancel-response (driver/alpaca-delete! trader-map (str "orders/" tx-id))]
-    (if (<= 400 (:status cancel-response))
-      (log/error (:body cancel-response))
-      (do
-        ;; FIXME -- remove order from order log
-        (log/info (format "%s canceled order %s" nickname tx-id))))))
+  [{:keys [nickname orders] :as trader-map} {:keys [symbol type direction]}]
+  (let [open-orders (filter #(and (= symbol (name (:symbol %)))
+                                  (= type (:type %))
+                                  (= direction (:direction %)))
+                            orders)]
+    (doseq [{tx-id :order-id} open-orders]
+      (let [cancel-response (driver/alpaca-delete! trader-map (str "orders/" tx-id))]
+        (if (<= 400 (:status cancel-response))
+          (log/error (:body cancel-response))
+          (log/info (format "%s: canceled %s order %s" nickname symbol tx-id)))))))
 
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; ;;
 ;;                                   longs                                    ;;
@@ -102,7 +105,10 @@
 
 (defmethod on-trade ["alpaca" "long" "limit"]
   [{nickname :nickname :as trader-map} {:keys [symbol price stop-loss]}]
-  ;; FIXME -- cancel existing long order if it exists
+
+  ;; cancel existing long order if it exists
+  (cancel-order! trader-map {:symbol symbol :type :limit :direction :long})
+
   (let [volume     (compute-volume trader-map price price stop-loss)
         order-data (driver/alpaca-post!
                     trader-map "orders"
@@ -116,18 +122,19 @@
                      :stop_loss     {:stop_price stop-loss}})]
     (if (<= 400 (:status order-data))
       (do
-        (log/error (format "%s failed to limit long for %s" nickname symbol))
+        (log/error (format "%s: failed to open long limit for %s" nickname symbol))
         (log/error (:body order-data)))
-      (let [tx-id (get-in order-data [:body :id])]
-        (log/info (format "%s: longing %.2f %s at price %.2f (stop-loss at %.2f)"
-                          nickname volume symbol price stop-loss))
-        ;; FIXME -- add order to order log
-        (comment "record the order")))))
+      (log/info (format "%s: longing %.2f %s at price %.2f (stop-loss at %.2f)"
+                        nickname volume symbol price stop-loss)))))
 
 (defmethod on-trade ["alpaca" "long" "take-profit"]
   [trader-map {:keys [symbol percentage] :as ev}]
-  ;; FIXME -- cancel-existing long stop-loss
-  (let [volume 0] ;; FIXME -- get existing volume and multiply by percentage
+
+  ;; cancel existing stop-loss order if it exists
+  (cancel-order! trader-map {:symbol symbol :type :stop-loss :direction :long})
+
+  (let [volume (* (get-in trader-map [:open-positions symbol :volume])
+                  percentage)]
     (driver/alpaca-post!
      trader-map "orders"
      {:symbol        symbol
@@ -139,7 +146,10 @@
 
 (defmethod on-trade ["alpaca" "long" "stop-loss"]
   [{nickname :nickname :as trader-map} {:keys [symbol stop-loss]}]
-  ;; FIXME -- cancel-existing long stop-loss
+
+  ;; cancel existing stop-loss order if it exists
+  (cancel-order! trader-map {:symbol symbol :type :stop-loss :direction :long})
+
   (let [volume 0 ;; get existing volume
         order-data (driver/alpaca-post!
                     trader-map "orders"
@@ -151,12 +161,10 @@
                      :qty           (int volume)})]
     (if (<= 400 (:status order-data))
       (do
-        (log/error (format "%s: failed to open stop-loss order for %s" nickname symbol))
+        (log/error (format "%s: failed to open long stop-loss for %s" nickname symbol))
         (log/error (:body order-data)))
-      (let [tx-id (get-in order-data [:body :id])]
-        ;; FIXME -- add order to order log
-        (log/info (format "%s: set %s long stop-loss to %.2f"
-                          nickname symbol stop-loss))))))
+      (log/info (format "%s: set %s long stop-loss to %.2f"
+                        nickname symbol stop-loss)))))
 
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; ;;
 ;;                                   shorts                                   ;;
