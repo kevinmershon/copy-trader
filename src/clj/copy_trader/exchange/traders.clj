@@ -1,8 +1,9 @@
 (ns copy-trader.exchange.traders
   (:require
-   [cheshire.core :refer [parse-string generate-string]]
+   [cheshire.core :refer [parse-string]]
    [clojure.java.io :as io]
    [clojure.tools.logging :as log]
+   [copy-trader.cache :as cache]
    [copy-trader.core :as core]
    [copy-trader.exchange.alpaca.trader]))
 
@@ -10,7 +11,7 @@
   []
   (try
     (swap! core/state assoc :traders
-           (mapv atom
+           (mapv (comp atom cache/with-orders-and-positions)
                  (-> (io/file "config.json")
                      slurp
                      (parse-string true)

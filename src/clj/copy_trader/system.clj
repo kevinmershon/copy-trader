@@ -9,26 +9,22 @@
 
 (defn halt
   []
-  ;; FIXME
-  (comment "disconnect websocket clients")
-  (scheduler/halt!)
-  (server/halt!)
-  (reset! core/state {:is-running? false})
+  (when (:is-running? @core/state)
+    ;; FIXME
+    (comment "disconnect websocket clients")
+    (scheduler/halt!)
+    (server/halt!)
+    (reset! core/state {:is-running? false}))
   :halted)
 
 (defn go
   []
-  (traders/load-traders!)
-  (scheduler/start!)
-  (server/start!)
-  (jobs/schedule-jobs!)
-  (swap! core/state assoc :is-running? true)
-  ;; FIXME
-  (comment "fetch all balances, orders, and positions")
-  (comment "connect websocket clients")
+  (when-not (:is-running? @core/state)
+    (traders/load-traders!)
+    (scheduler/start!)
+    (server/start!)
+    (jobs/schedule-jobs!)
+    (swap! core/state assoc :is-running? true)
+    ;; FIXME
+    (comment "connect websocket clients"))
   :running)
-
-(defn -main
-  []
-  (go)
-  (println "Running. C-c to stop."))

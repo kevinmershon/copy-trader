@@ -2,6 +2,7 @@
   (:require
    [clojure.tools.logging :as log]
    [clojurewerkz.quartzite.jobs :as jobs :refer [defjob]]
+   [copy-trader.cache :refer [with-cache]]
    [copy-trader.exchange.traders :refer [all-traders]]
    [copy-trader.exchange.trader :refer [;;cache-orders! cache-positions!
                                         with-balance with-orders with-positions]]))
@@ -12,7 +13,8 @@
                         (->> trader-map
                              with-balance
                              with-positions
-                             with-orders))))
+                             with-orders
+                             with-cache))))
 
 (defn- do-trader-balances-job*
   [_job-context]

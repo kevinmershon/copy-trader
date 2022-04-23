@@ -23,4 +23,4 @@ dev:
 	clj -A:dev
 
 run:
-	clj -M:run
+	clj -M:run -m nrepl.cmdline --bind 0.0.0.0 --port 40404

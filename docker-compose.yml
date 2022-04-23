@@ -3,8 +3,8 @@ services:
   copy-trader-redis:
     image:
       copy-trader-redis
-    ports:
-      - "6379:6379"
+    expose:
+      - "6379"
     volumes:
       - ./.redis_root:/var/lib/redis
 
@@ -13,7 +13,10 @@ services:
       copy-trader
     depends_on:
       - copy-trader-redis
+    environment:
+      - REDIS_ENDPOINT=redis://copy-trader-redis:6379
     ports:
+      - "40404:40404"
       - "51585:51585"
     volumes:
       - ./:/usr/src/app

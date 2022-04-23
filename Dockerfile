@@ -12,6 +12,7 @@ RUN chmod +x linux-install-1.10.3.822.sh
 RUN ./linux-install-1.10.3.822.sh
 
 EXPOSE 51585
+EXPOSE 40404
 WORKDIR /usr/src/app
 
 ENTRYPOINT ["make", "run"]
