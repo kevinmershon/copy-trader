@@ -1,4 +1,9 @@
 {
+  "clients": [
+    {
+      "uri": "wss://copy-trader.mershonenterprises.com/ws"
+    }
+  ],
   "traders": [
     {
       "nickname": "My Alpaca Trader",

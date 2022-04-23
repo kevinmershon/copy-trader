@@ -26,6 +26,9 @@
   ;; FIXME
   (comment "fetch all balances, orders, and positions")
   (comment "connect websocket clients")
-
-  (println "Running. Use (halt) to stop.")
   :running)
+
+(defn -main
+  []
+  (go)
+  (println "Running. C-c to stop."))

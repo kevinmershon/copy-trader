@@ -26,4 +26,6 @@
 
          ;; client websockets
          stylefruits/gniazdo {:mvn/version "1.1.4"}}
- :aliases {:dev {:extra-paths ["src/dev"]}}}
+ :aliases {:dev {:extra-paths ["src/dev"]}
+           :run {:extra-paths ["src/prod"]
+                 :main-opts ["-m" "copy-trader.system"]}}}

@@ -8,6 +8,7 @@
   []
   (require 'copy-trader.console)
   (in-ns 'copy-trader.console)
-  (eval '(go)))
+  (eval '(go))
+  (println "Running. Use (halt) to stop."))
 
 (dev)

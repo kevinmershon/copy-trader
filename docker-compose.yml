@@ -1,0 +1,19 @@
+version: "3.8"
+services:
+  copy-trader-redis:
+    image:
+      copy-trader-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./redis_root:/var/lib/redis
+
+  copy-trader:
+    image:
+      copy-trader
+    depends_on:
+      - copy-trader-redis
+    ports:
+      - "51585:51585"
+    volumes:
+      - ./:/usr/src/app
