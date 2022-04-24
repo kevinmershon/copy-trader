@@ -2,8 +2,8 @@
   (:require
    [clj-http.client   :as client]
    [clj-http.conn-mgr :as conn-mgr]
-   [clj-time.core     :as ctcore]
    [clj-time.coerce   :as ctc]
+   [clj-time.core     :as ctcore]
    [clj-time.format   :as ctf]
    [copy-trader.util :refer [atom?]]))
 

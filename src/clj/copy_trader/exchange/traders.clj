@@ -5,7 +5,8 @@
    [copy-trader.config :refer [config]]
    [copy-trader.core :as core]
    [copy-trader.exchange.trader :as trader]
-   [copy-trader.exchange.alpaca.trader]))
+   [copy-trader.exchange.alpaca.trader]
+   [copy-trader.exchange.ameritrade.trader]))
 
 (defn load-traders!
   []
