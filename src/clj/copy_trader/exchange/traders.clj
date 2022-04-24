@@ -12,7 +12,9 @@
   []
   (try
     (swap! core/state assoc :traders
-           (mapv (comp atom cache/with-orders-and-positions)
+           (mapv (comp atom
+                       cache/with-orders-and-positions
+                       cache/with-credentials)
                  (:traders (config))))
     :ok
     (catch Throwable t
