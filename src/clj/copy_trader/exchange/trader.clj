@@ -23,6 +23,14 @@
   [_ _]
   :not-implemented)
 
+(defmulti with-authorization
+  (fn [{:keys [exchange] :as _trader-map} _code]
+    exchange))
+
+(defmethod with-authorization :default
+  [_ _]
+  :not-implemented)
+
 (defn active-positions
   [{:keys [open-positions] :as _trader-map}]
   (reduce-kv

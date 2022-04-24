@@ -44,6 +44,22 @@
          (with-carmine
            (car/hgetall key))))
 
+(defn cache-credentials!
+  [{:keys [nickname credentials] :as _trader-map}]
+  (let [cache-key (str nickname "-credentials")]
+    (with-carmine
+      (car/set cache-key credentials))))
+
+(defn get-credentials
+  [{:keys [nickname] :as _trader-map}]
+  (let [cache-key (str nickname "-credentials")]
+    (with-carmine
+      (car/get cache-key))))
+
+(defn with-credentials
+  [trader-map]
+  (update-in trader-map [:credentials] merge (get-credentials trader-map)))
+
 (defn cache-orders!
   [{:keys [nickname orders] :as _trader-map}]
   (let [cache-key (str nickname "-orders")]
@@ -82,8 +98,8 @@
 
 (defn with-cache
   [trader-map]
-  (cache-orders! trader-map)
-  (cache-positions! trader-map)
+  ((juxt cache-credentials! cache-orders! cache-positions!)
+   trader-map)
   (save!)
 
   ;; return

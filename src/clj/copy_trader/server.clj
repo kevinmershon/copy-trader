@@ -1,6 +1,7 @@
 (ns copy-trader.server
   (:require
    [copy-trader.core :as core]
+   [copy-trader.exchange.trader :as trader]
    [copy-trader.websocket.server :as ws-server]
    [muuntaja.core :as m]
    [reitit.coercion.spec :as rcs]
@@ -26,11 +27,29 @@
    :headers {"Content-Type" "text/html"}
    :body    "Access Denied"})
 
+(defn authorize-trader-with-account-id!
+  [{:keys [account-id code]}]
+  (when-let [trader-state (->> @core/state
+                               :traders
+                               (filter (fn [trader-state]
+                                         (= account-id (-> @trader-state
+                                                           :credentials
+                                                           :account_id)))))]
+    (swap! trader-state #(trader/with-authorization % code)))
+  {:status 202
+   :headers {"Content-Type" "text/html"}
+   :body "Accepted"})
+
 (def http-handler
   (ring/ring-handler
    (ring/router
-    [["/" {:get index}]]
-    {:data default-route-data
+    [["/" {:get index}]
+     ["/:account-id/authorize" {:any     {:parameters {:query {:code string?}}}
+                                :handler (fn [req]
+                                           (authorize-trader-with-account-id!
+                                            {:account-id (-> req :path-params :account-id)
+                                             :code       (-> req :parameters :query :code)}))}]]
+    {:data      default-route-data
      :conflicts (constantly nil)})
    (ring/routes
     (ring/create-default-handler))))

@@ -18,6 +18,20 @@
       "leverage":      2.0,
       "risk":          0.0375,
       "shorting":      false
+    },
+    {
+      "nickname": "My Ameritrade Trader",
+      "exchange": "ameritrade",
+      "assets": ["equity"],
+      "credentials": {
+        "app_id": "YOUR_AMERITRADE_DEVELOPER_ACCOUNT_APP_ID",
+        "account_id": "YOUR_AMERITRADE_ACCOUNT_ID"
+      },
+      "max_positions": 20,
+      "type":          "live",
+      "leverage":      2.0,
+      "risk":          0.0375,
+      "shorting":      false
     }
   ]
 }
