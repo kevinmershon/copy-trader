@@ -4,7 +4,7 @@
    [clojure.tools.logging :as log]
    [copy-trader.config :refer [config]]
    [copy-trader.core :as core]
-   [copy-trader.exchange.trader :as trader]
+   [copy-trader.exchange.traders :as traders]
    [copy-trader.websocket.event :as ws-event]
    [copy-trader.websocket.security :as security]
    [gniazdo.core :as ws]))
@@ -26,19 +26,19 @@
 
 ;; receiving a trade signal from our server
 (defmethod ws-event/on-event :trade
-  [_uri {:keys [payload] :as _msg}]
+  [uri {:keys [payload] :as _msg}]
   (let [trade-payload (security/unsign-payload payload)]
+    (log/info "Received trade from server " trade-payload)
     ;; re-fire event to all downstream clients
-    (ws-event/on-event {:message-code :refire-trade-down
-                        :payload      payload})
-    ;; then take the trade ourselves
-    (trader/on-trade trade-payload)))
+    (ws-event/on-event uri {:message-code :refire-trade-down
+                            :payload      payload})
+    (traders/dispatch-trade! trade-payload)))
 
 ;; refiring a trade signal from our client
 (defmethod ws-event/on-event :refire-trade-up
   [_uri {:keys [_message-code _payload] :as msg}]
   (doseq [[_uri socket] (:ws-servers @core/state)]
-    (send-to-server! socket msg)))
+    (send-to-server! socket (assoc msg :message-code :trade))))
 
 (defn- ping!
   [socket]
@@ -54,17 +54,17 @@
     (ws-event/on-event uri edn-msg)))
 
 (defn- on-error
-  [error]
-  (log/error error))
+  [& args]
+  (log/error args))
 
 (defn- on-close
   [uri]
   (log/info (format "Disconnecting from %s" uri))
-  (let [socket (get-in @core/state [:ws-servers uri])]
+  (when-let [socket (get-in @core/state [:ws-servers uri])]
     (try
       (ws/close socket)
-      (catch Throwable t
-        (log/error t)))
+      (catch Throwable _t
+        :ok))
     (swap! core/state update-in [:ws-servers] dissoc uri)
     :disconnected))
 
@@ -73,9 +73,12 @@
   (log/info (format "Connecting to %s" uri))
   (when (:is-running? @core/state)
     (when-let [socket (ws/connect uri
-                        :on-receive #(on-receive uri %)
+                        :on-receive (fn [msg]
+                                      (on-receive uri msg))
                         :on-error on-error
-                        :on-close #(on-close uri))]
+                        :on-close (fn [& args]
+                                    (log/error args)
+                                    (on-close uri)))]
       (swap! core/state assoc-in [:ws-servers uri] socket)
       :connected)))
 
@@ -102,6 +105,12 @@
   []
   (let [server-configs (:servers (config))]
     (doseq [{:keys [uri]} server-configs]
-      (if-let [socket (get-in @core/state [:ws-servers uri])]
-        (ping! socket)
-        (connect! uri)))))
+      (let [socket (get-in @core/state [:ws-servers uri])]
+        (if-not socket
+          (connect! uri)
+
+          (try
+            (ping! socket)
+            (catch Throwable _t
+              (disconnect! uri)
+              (connect! uri))))))))

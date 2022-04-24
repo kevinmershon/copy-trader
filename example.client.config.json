@@ -8,6 +8,7 @@
     {
       "nickname": "My Alpaca Trader",
       "exchange": "alpaca",
+      "assets": ["equity"],
       "credentials": {
         "api_key":    "YOUR_API_TOKEN",
         "api_secret": "YOU_API_SECRET"

@@ -4,9 +4,9 @@
    [copy-trader.core :as core]
    [clojure.tools.logging :as log]
    [ring.adapter.jetty9 :as jetty]
-   [copy-trader.websocket.security :as security]
+   [copy-trader.exchange.traders :as traders]
    [copy-trader.websocket.event :as ws-event]
-   [copy-trader.exchange.trader :as trader])
+   [copy-trader.websocket.security :as security])
   (:import [java.util UUID]))
 
 (defn- send-to-client!
@@ -38,8 +38,6 @@
 (defmethod on-event :auth-challenge-ack
   [ws {:keys [_message-code payload]}]
   (let [auth-challenge (get-in @core/state [:ws-clients ws :auth-challenge])]
-    (log/info "expected auth-challenge" auth-challenge)
-    (log/info "received auth-challenge" (:auth-challenge payload))
     (if (= auth-challenge (:auth-challenge payload))
       (do
         (log/info "WebSocket client authenticated.")
@@ -54,23 +52,25 @@
 ;; re-firing a trade signal from our server
 (defmethod ws-event/on-event :refire-trade-down
   [_uri {:keys [_message-code payload]}]
-  (let [msg {:message-code :trade
-             :payload      (security/sign-payload payload)}]
-    ;; re-fire event to all downstream clients
-    (send-to-clients! :trade msg)))
+  {:pre [(string? payload)]}
+  ;; payload is already signed
+  ;; re-fire event to all downstream clients
+  (send-to-clients! {:message-code :trade
+                     :payload      payload}))
 
 ;; receiving a trade signal from our client
 (defmethod on-event :trade
   [ws {:keys [_message-code payload] :as msg}]
   (try
-    (let [trade-payload (security/unsign-payload payload)]
+    (let [trade-payload (-> (security/unsign-payload payload))]
+      (log/info "Received trade from client" trade-payload)
       ;; re-fire event to other downstream clients
-      (send-to-clients! msg :except-client ws)
+      (send-to-clients! (assoc msg :message-code :trade)
+                        :except-client ws)
       ;; re-fire event to our server
       (ws-event/on-event "" {:message-code :refire-trade-up
                              :payload      payload})
-      ;; then take the trade ourselves
-      (trader/on-trade trade-payload))
+      (traders/dispatch-trade! trade-payload))
     (catch Throwable t
       (log/error t))))
 
