@@ -9,3 +9,6 @@
   :not-implemented)
 
 ;; TODO -- implement too-many-clients error handler
+
+(def ONE-DAY
+  (* 1000 60 60 24))

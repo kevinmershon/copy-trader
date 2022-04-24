@@ -1,12 +1,13 @@
 (ns copy-trader.websocket.server
   (:require
    [cheshire.core :refer [parse-string generate-string]]
-   [copy-trader.core :as core]
+   [clojure.core.memoize :as memo]
    [clojure.tools.logging :as log]
-   [ring.adapter.jetty9 :as jetty]
+   [copy-trader.core :as core]
    [copy-trader.exchange.traders :as traders]
    [copy-trader.websocket.event :as ws-event]
-   [copy-trader.websocket.security :as security])
+   [copy-trader.websocket.security :as security]
+   [ring.adapter.jetty9 :as jetty])
   (:import [java.util UUID]))
 
 (defn- send-to-client!
@@ -77,7 +78,7 @@
 (defmethod on-event :ping
   [ws _msg]
   (send-to-client! ws {:message-code :pong
-                       :payload      {}}))
+                       :payload      {:time (System/currentTimeMillis)}}))
 
 (defn- on-connect
   [ws]
@@ -100,7 +101,7 @@
   (log/info "WebSocket client disconnected" status-code reason)
   (swap! core/state update :ws-clients dissoc ws))
 
-(defn- on-receive
+(defn- on-receive*
   [ws json-message]
   (try
     (let [edn-msg (-> json-message
@@ -111,9 +112,12 @@
     (catch Throwable t
       (log/error t))))
 
+(def ^:private memoized-on-receive
+  (memo/ttl on-receive* {} :ttl/threshold ws-event/ONE-DAY))
+
 (def handler
   ;; GOTCHA -- these need to be wrapped for hot reloading to work
   {:on-connect (fn [ws] (on-connect ws))
    :on-error   (fn [ws err] (on-error ws err))
    :on-close   (fn [ws status-code reason] (on-close ws status-code reason))
-   :on-text    (fn [ws text] (on-receive ws text))})
+   :on-text    (fn [ws text] (memoized-on-receive ws text))})

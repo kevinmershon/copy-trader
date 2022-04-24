@@ -1,6 +1,7 @@
 (ns copy-trader.websocket.client
   (:require
    [cheshire.core :refer [parse-string generate-string]]
+   [clojure.core.memoize :as memo]
    [clojure.tools.logging :as log]
    [copy-trader.config :refer [config]]
    [copy-trader.core :as core]
@@ -43,15 +44,18 @@
 (defn- ping!
   [socket]
   (send-to-server! socket {:message-code :ping
-                           :payload      {}}))
+                           :payload      {:time (System/currentTimeMillis)}}))
 
-(defn- on-receive
+(defn- on-receive*
   [uri json-message]
   (let [edn-msg (-> json-message
                     (parse-string true)
                     (update :message-code keyword))]
     (log/debug (str "Received message from " uri) edn-msg)
     (ws-event/on-event uri edn-msg)))
+
+(def ^:private memoized-on-receive
+  (memo/ttl on-receive* {} :ttl/threshold ws-event/ONE-DAY))
 
 (defn- on-error
   [& args]
@@ -74,7 +78,7 @@
   (when (:is-running? @core/state)
     (when-let [socket (ws/connect uri
                         :on-receive (fn [msg]
-                                      (on-receive uri msg))
+                                      (memoized-on-receive uri msg))
                         :on-error on-error
                         :on-close (fn [& args]
                                     (log/error args)
