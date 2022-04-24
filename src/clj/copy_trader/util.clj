@@ -1,4 +1,9 @@
-(ns copy-trader.util)
+(ns copy-trader.util
+  (:import [clojure.lang Atom]))
+
+(defn atom?
+  [x]
+  (instance? Atom x))
 
 (defn to-precision
   [n precision]
