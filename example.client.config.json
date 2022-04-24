@@ -1,7 +1,7 @@
 {
   "clients": [
     {
-      "uri": "wss://copy-trader.mershonenterprises.com/ws"
+      "uri": "wss://copy-trader.mershonenterprises.com:1585/ws"
     }
   ],
   "traders": [

@@ -52,7 +52,7 @@ ssh-keygen -f private-key.pem -e -m pem > public-key.pem
 
 Configuration
 --
-1. Copy `example.config.json` to `config.json` and fill in your API key and adjust settings as desired
+1. Copy `example.client.config.json` to `config.json`, fill in your API key and secret, and adjust settings as desired
 1. `type` valid values are `paper` and `live`
 1. `max_positions` valid values above 1, recommended values between 15 and 20
 1. `leverage` valid values range between 0.5 and 2.0
