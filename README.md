@@ -43,6 +43,13 @@ Disclaimers and Risks
 --
 1. **You are 100% responsible for any trades made on your accounts, with or
    without this software.**
+1. **Pattern Day Trader** violations: [FINRA
+   requires](https://www.investopedia.com/terms/p/patterndaytrader.asp) you to
+   have at least $25,000 in an account in order to execute day trades. If the
+   nodes issuing trade messages to your network are day trading and your account
+   has less than the mandated minimum, your account could be suspended for 3
+   days. Repeated offenses could see your account suspended or closed, depending
+   on your brokerage.
 1. **There is no logic within this system for managing a position once opened.**
 1. Once you are in a position, you either need to manage it yourself, or trust
    that the node that dispatched the trade message will accordingly follow-up
