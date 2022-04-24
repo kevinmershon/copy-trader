@@ -5,7 +5,8 @@
    [clj-time.coerce   :as ctc]
    [clj-time.core     :as ctcore]
    [clj-time.format   :as ctf]
-   [copy-trader.util :refer [atom?]]))
+   [copy-trader.util :refer [atom?]]
+   [copy-trader.exchange.trader :as trader]))
 
 (def ^:private cm (clj-http.conn-mgr/make-reusable-conn-manager {:threads 4}))
 
@@ -51,8 +52,8 @@
   (ameritrade-request* trader-map client/delete path))
 
 (defn- handle-authorize-response!
-  [trader-state response]
-  {:pre [(atom? trader-state) (map? response)]}
+  [trader-map response]
+  {:pre [(map? trader-map) (map? response)]}
   (let [updated-credentials
         (merge
          (when (:refresh_token_expires_in response)
@@ -68,8 +69,7 @@
              {:access_token         (:access_token response)
               :access_token_expires access-token-expires})))]
     ;; FIXME -- persist refresh and access token to Redis?
-    (swap! trader-state update-in [:credentials] merge updated-credentials))
-  :ok)
+    (update-in trader-map [:credentials] merge updated-credentials)))
 
 (defn refresh-token!
   [trader-state & {:keys [full-refresh?]
@@ -87,7 +87,8 @@
                                               "client_id"     app-id})
                                             :no-authorization? true)
                           :body)]
-    (handle-authorize-response! trader-state response)))
+    (swap! trader-state #(handle-authorize-response! % response))
+    :refreshed))
 
 (defn maybe-refresh-tokens!
   [trader-state]
@@ -114,3 +115,27 @@
                         (ctcore/plus (ctcore/now)
                                      (ctcore/minutes 5)))
         (refresh-token! trader-state)))))
+
+(defn ->account-id
+  [trader-map]
+  (get-in trader-map [:credentials :account_id]))
+
+(defn ->redirect-url
+  [trader-map]
+  (let [account-id (->account-id trader-map)]
+    (str "http://localhost:51581/%s/authorize" account-id)))
+
+(defmethod trader/with-authorization "ameritrade"
+  [trader-map {:keys [code]}]
+  {:pre [(map? trader-map)  (string? code)]}
+  (let [app-id   (:app_id (:credentials trader-map))
+        response (-> (ameritrade-post! trader-map "oauth2/token"
+                                       {"grant_type"    "authorization_code"
+                                        "refresh_token" ""
+                                        "access_type"   "offline"
+                                        "code"          code
+                                        "client_id"     (str app-id "@AMER.OAUTHAP")
+                                        "redirect_uri"  (->redirect-url trader-map)}
+                                       :no-authorization? true)
+                     :body)]
+    (handle-authorize-response! trader-map response)))

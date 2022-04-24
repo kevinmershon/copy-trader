@@ -2,7 +2,7 @@
   (:refer-clojure :exclude [symbol])
   (:require
    [clojure.tools.logging :as log]
-   [copy-trader.exchange.ameritrade.driver :as driver]
+   [copy-trader.exchange.ameritrade.driver :as driver :refer [->account-id]]
    [copy-trader.exchange.trader :refer [compute-position-size
                                         compute-volume
                                         on-trade
@@ -15,10 +15,6 @@
            (map :securitiesAccount)
            (filter #(= account-id (:accountId %)))
            first))
-
-(defn ->account-id
-  [trader-map]
-  (get-in trader-map [:credentials :account_id]))
 
 (defmethod with-balance "ameritrade"
   [trader-map]
