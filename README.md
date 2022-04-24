@@ -3,6 +3,21 @@ copy-trader
 This is an engine to facilitate copy-trading syndicated trades by other trusted
 traders over the internet.
 
+Project Status
+--
+
+Status: MVP Feature Complete, **NOW IN TESTING**
+
+Core development is done and the system is working and [a reference
+implementation paired with Impresario is available for the brave and
+bold](https://gist.github.com/kevinmershon/240bf57b25f2c595806e213ac6dcf944).
+
+### To Do
+
+* Order replay prevention
+* "Watch Account" mode for syndicating manual trades
+* Add Ameritrade Exchange support (authentication process is laborious)
+
 How it Works
 --
 This application acts as both a WebSocket client and server on port `51585`.
