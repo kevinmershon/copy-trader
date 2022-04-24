@@ -1,5 +1,5 @@
 {
-  "clients": [
+  "servers": [
     {
       "uri": "wss://copy-trader.mershonenterprises.com:1585/ws"
     }

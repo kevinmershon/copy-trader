@@ -1,11 +1,11 @@
 (ns copy-trader.websocket.event)
 
 (defmulti on-event
-  (fn [{:keys [message-code _payload]}]
+  (fn [_uri {:keys [message-code _payload]}]
     message-code))
 
 (defmethod on-event :default
-  [_]
+  [_uri _msg]
   :not-implemented)
 
 ;; TODO -- implement too-many-clients error handler
