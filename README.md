@@ -14,9 +14,8 @@ bold](https://gist.github.com/kevinmershon/240bf57b25f2c595806e213ac6dcf944).
 
 ### To Do
 
-* Order replay prevention
 * "Watch Account" mode for syndicating manual trades
-* Add Ameritrade Exchange support (authentication process is laborious)
+* Test Ameritrade auth and trading (feature complete but currently untested!)
 
 How it Works
 --
@@ -74,7 +73,11 @@ ssh-keygen -f private-key.pem -e -m pem > public-key.pem
 
 Configuration
 --
-1. Copy `example.client.config.json` to `config.json`, fill in your API key and secret, and adjust settings as desired
+For Ameritade, please see the [Ameritrade Instructions](doc/Ameritrade.md).
+
+1. Copy `example.client.config.json` to `config.json`, fill in your API key and
+   secret, and adjust settings as desired. Remove unused client configs if you
+   don't have a brokerage account for that exchange.
 1. `type` valid values are `paper` and `live`
 1. `max_positions` valid values above 1, recommended values between 15 and 20
 1. `leverage` valid values range between 0.5 and 2.0
