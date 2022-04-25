@@ -230,25 +230,25 @@
   ;; cancel existing stop-loss order if it exists
   (cancel-order! trader-map {:symbol symbol :type :stop-loss :direction :long})
 
-  (let [volume           (get-in trader-map [:open-positions symbol :volume])
-        profit-volume    (int (* volume percentage))
-        remaining-volume (- volume profit-volume)
-        instrument       {:symbol    symbol
-                          :assetType "EQUITY"}]
-    (driver/ameritrade-post!
-     trader-map
-     (format "accounts/%s/orders" (->account-id trader-map))
-     {:session            "NORMAL"
-      :orderType          "MARKET"
-      :duration           "DAY"
-      :orderStrategyType  "SINGLE"
-      :orderLegCollection [{:instruction "SELL"
-                            :quantity    (int volume)
-                            :instrument  instrument}]})
-    (on-trade (assoc-in trader-map
-                        [:open-positions (keyword symbol) :volume]
-                        remaining-volume)
-              (assoc ev :order-type "stop-loss"))))
+  (when-let [volume (get-in trader-map [:open-positions symbol :volume])]
+    (let [profit-volume    (int (* volume percentage))
+          remaining-volume (- volume profit-volume)
+          instrument       {:symbol    symbol
+                            :assetType "EQUITY"}]
+      (driver/ameritrade-post!
+       trader-map
+       (format "accounts/%s/orders" (->account-id trader-map))
+       {:session            "NORMAL"
+        :orderType          "MARKET"
+        :duration           "DAY"
+        :orderStrategyType  "SINGLE"
+        :orderLegCollection [{:instruction "SELL"
+                              :quantity    (int volume)
+                              :instrument  instrument}]})
+      (on-trade (assoc-in trader-map
+                          [:open-positions (keyword symbol) :volume]
+                          remaining-volume)
+                (assoc ev :order-type "stop-loss")))))
 
 (defmethod on-trade ["ameritrade" "long" "stop-loss"]
   [{nickname :nickname :as trader-map} {:keys [symbol stop-loss]}]
@@ -322,25 +322,25 @@
   ;; cancel existing stop-loss order if it exists
   (cancel-order! trader-map {:symbol symbol :type :stop-loss :direction :short})
 
-  (let [volume           (get-in trader-map [:open-positions symbol :volume])
-        profit-volume    (int (* volume percentage))
-        remaining-volume (- volume profit-volume)
-        instrument       {:symbol    symbol
-                          :assetType "EQUITY"}]
-    (driver/ameritrade-post!
-     trader-map
-     (format "accounts/%s/orders" (->account-id trader-map))
-     {:session            "NORMAL"
-      :orderType          "MARKET"
-      :duration           "DAY"
-      :orderStrategyType  "SINGLE"
-      :orderLegCollection [{:instruction "BUY_TO_COVER"
-                            :quantity    (int volume)
-                            :instrument  instrument}]})
-    (on-trade (assoc-in trader-map
-                        [:open-positions (keyword symbol) :volume]
-                        remaining-volume)
-              (assoc ev :order-type "stop-loss"))))
+  (when-let [volume (get-in trader-map [:open-positions symbol :volume])]
+    (let [profit-volume    (int (* volume percentage))
+          remaining-volume (- volume profit-volume)
+          instrument       {:symbol    symbol
+                            :assetType "EQUITY"}]
+      (driver/ameritrade-post!
+       trader-map
+       (format "accounts/%s/orders" (->account-id trader-map))
+       {:session            "NORMAL"
+        :orderType          "MARKET"
+        :duration           "DAY"
+        :orderStrategyType  "SINGLE"
+        :orderLegCollection [{:instruction "BUY_TO_COVER"
+                              :quantity    (int volume)
+                              :instrument  instrument}]})
+      (on-trade (assoc-in trader-map
+                          [:open-positions (keyword symbol) :volume]
+                          remaining-volume)
+                (assoc ev :order-type "stop-loss")))))
 
 (defmethod on-trade ["ameritrade" "short" "stop-loss"]
   [{nickname :nickname :as trader-map} {:keys [symbol stop-loss]}]
