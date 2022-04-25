@@ -109,12 +109,13 @@
   []
   (let [server-configs (:servers (config))]
     (doseq [{:keys [uri]} server-configs]
-      (let [socket (get-in @core/state [:ws-servers uri])]
-        (if-not socket
-          (connect! uri)
+      (locking uri
+        (let [socket (get-in @core/state [:ws-servers uri])]
+          (if-not socket
+            (connect! uri)
 
-          (try
-            (ping! socket)
-            (catch Throwable _t
-              (disconnect! uri)
-              (connect! uri))))))))
+            (try
+              (ping! socket)
+              (catch Throwable _t
+                (disconnect! uri)
+                (connect! uri)))))))))
