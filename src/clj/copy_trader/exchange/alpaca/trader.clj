@@ -133,7 +133,7 @@
   ;; cancel existing stop-loss order if it exists
   (cancel-order! trader-map {:symbol symbol :type :stop-loss :direction :long})
 
-  (when-let [volume (get-in trader-map [:open-positions symbol :volume])]
+  (when-let [volume (get-in trader-map [:open-positions (keyword symbol) :volume])]
     (let [profit-volume    (int (* volume percentage))
           remaining-volume (- volume profit-volume)]
       (driver/alpaca-post!
@@ -204,7 +204,7 @@
   ;; cancel existing stop-loss order if it exists
   (cancel-order! trader-map {:symbol symbol :type :stop-loss :direction :short})
 
-  (when-let [volume (get-in trader-map [:open-positions symbol :volume])]
+  (when-let [volume (get-in trader-map [:open-positions (keyword symbol) :volume])]
     (let [profit-volume    (int (* volume percentage))
           remaining-volume (- volume profit-volume)]
       (driver/alpaca-post!
