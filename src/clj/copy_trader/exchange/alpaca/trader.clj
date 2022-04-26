@@ -129,24 +129,24 @@
 
 (defmethod on-trade ["alpaca" "long" "take-profit"]
   [trader-map {:keys [symbol percentage] :as ev}]
-
-  ;; cancel existing stop-loss order if it exists
-  (cancel-order! trader-map {:symbol symbol :type :stop-loss :direction :long})
-
   (when-let [volume (get-in trader-map [:open-positions (keyword symbol) :volume])]
     (let [profit-volume    (int (* volume percentage))
           remaining-volume (- volume profit-volume)]
-      (driver/alpaca-post!
-       trader-map "orders"
-       {:symbol        symbol
-        :side          "sell"
-        :type          "market"
-        :time_in_force "gtc"
-        :qty           profit-volume})
-      (on-trade (assoc-in trader-map
-                          [:open-positions (keyword symbol) :volume]
-                          remaining-volume)
-                (assoc ev :order-type "stop-loss")))))
+      (when (pos? profit-volume)
+        ;; cancel existing stop-loss order if it exists
+        (cancel-order! trader-map {:symbol symbol :type :stop-loss :direction :long})
+
+        (driver/alpaca-post!
+         trader-map "orders"
+         {:symbol        symbol
+          :side          "sell"
+          :type          "market"
+          :time_in_force "day"
+          :qty           profit-volume})
+        (on-trade (assoc-in trader-map
+                            [:open-positions (keyword symbol) :volume]
+                            remaining-volume)
+                  (assoc ev :order-type "stop-loss"))))))
 
 (defmethod on-trade ["alpaca" "long" "stop-loss"]
   [{nickname :nickname :as trader-map} {:keys [symbol stop-loss]}]
@@ -200,24 +200,24 @@
 
 (defmethod on-trade ["alpaca" "short" "take-profit"]
   [trader-map {:keys [symbol percentage] :as ev}]
-
-  ;; cancel existing stop-loss order if it exists
-  (cancel-order! trader-map {:symbol symbol :type :stop-loss :direction :short})
-
   (when-let [volume (get-in trader-map [:open-positions (keyword symbol) :volume])]
     (let [profit-volume    (int (* volume percentage))
           remaining-volume (- volume profit-volume)]
-      (driver/alpaca-post!
-       trader-map "orders"
-       {:symbol        symbol
-        :side          "buy"
-        :type          "market"
-        :time_in_force "gtc"
-        :qty           profit-volume})
-      (on-trade (assoc-in trader-map
-                          [:open-positions (keyword symbol) :volume]
-                          remaining-volume)
-                (assoc ev :order-type "stop-loss")))))
+      (when (pos? profit-volume)
+        ;; cancel existing stop-loss order if it exists
+        (cancel-order! trader-map {:symbol symbol :type :stop-loss :direction :short})
+
+        (driver/alpaca-post!
+         trader-map "orders"
+         {:symbol        symbol
+          :side          "buy"
+          :type          "market"
+          :time_in_force "day"
+          :qty           profit-volume})
+        (on-trade (assoc-in trader-map
+                            [:open-positions (keyword symbol) :volume]
+                            remaining-volume)
+                  (assoc ev :order-type "stop-loss"))))))
 
 (defmethod on-trade ["alpaca" "short" "stop-loss"]
   [{nickname :nickname :as trader-map} {:keys [symbol stop-loss]}]
