@@ -192,37 +192,41 @@
 (defmethod on-trade ["ameritrade" "long" "limit"]
   [{nickname :nickname :as trader-map} {:keys [symbol price stop-loss]}]
 
-  ;; cancel existing long order if it exists
-  (cancel-order! trader-map {:symbol symbol :type :limit :direction :long})
-
-  (let [volume     (compute-volume trader-map price price stop-loss)
-        instrument {:symbol    symbol
-                    :assetType "EQUITY"}
-        order-data (driver/ameritrade-post!
-                    trader-map
-                    (format "accounts/%s/orders" (->account-id trader-map))
-                    {:session              "NORMAL"
-                     :orderType            "LIMIT"
-                     :duration             "GOOD_TILL_CANCEL"
-                     :price                price
-                     :orderStrategyType    "TRIGGER"
-                     :orderLegCollection   [{:instruction "BUY"
-                                             :quantity    (int volume)
-                                             :instrument  instrument}]
-                     :childOrderStrategies [{:session            "NORMAL"
-                                             :orderType          "STOP"
-                                             :stopPrice          stop-loss
-                                             :duration           "GOOD_TILL_CANCEL"
-                                             :orderStrategyType  "SINGLE"
-                                             :orderLegCollection [{:instruction "SELL"
-                                                                   :quantity    (int volume)
-                                                                   :instrument  instrument}]}]})]
-    (if (<= 400 (:status order-data))
+  (let [volume (compute-volume trader-map price price stop-loss)]
+    (if (pos? (int volume))
       (do
-        (log/error (format "%s: failed to open long limit for %s" nickname symbol))
-        (log/error (:body order-data)))
-      (log/info (format "%s: longing %.2f %s at price %.2f (stop-loss at %.2f)"
-                        nickname volume symbol price stop-loss)))))
+        ;; cancel existing long order if it exists
+        (cancel-order! trader-map {:symbol symbol :type :limit :direction :long})
+
+        (let [instrument {:symbol    symbol
+                          :assetType "EQUITY"}
+              order-data (driver/ameritrade-post!
+                          trader-map
+                          (format "accounts/%s/orders" (->account-id trader-map))
+                          {:session              "NORMAL"
+                           :orderType            "LIMIT"
+                           :duration             "GOOD_TILL_CANCEL"
+                           :price                price
+                           :orderStrategyType    "TRIGGER"
+                           :orderLegCollection   [{:instruction "BUY"
+                                                   :quantity    (int volume)
+                                                   :instrument  instrument}]
+                           :childOrderStrategies [{:session            "NORMAL"
+                                                   :orderType          "STOP"
+                                                   :stopPrice          stop-loss
+                                                   :duration           "GOOD_TILL_CANCEL"
+                                                   :orderStrategyType  "SINGLE"
+                                                   :orderLegCollection [{:instruction "SELL"
+                                                                         :quantity    (int volume)
+                                                                         :instrument  instrument}]}]})]
+          (if (<= 400 (:status order-data))
+            (do
+              (log/error (format "%s: failed to open long limit for %s" nickname symbol))
+              (log/error (:body order-data)))
+            (log/info (format "%s: longing %.2f %s at price %.2f (stop-loss at %.2f)"
+                              nickname volume symbol price stop-loss)))))
+      (log/info (format "Not taking long on %s. Computed volume was < 1"
+                        symbol)))))
 
 (defmethod on-trade ["ameritrade" "long" "take-profit"]
   [trader-map {:keys [symbol percentage] :as ev}]
@@ -284,37 +288,41 @@
 (defmethod on-trade ["ameritrade" "short" "limit"]
   [{nickname :nickname :as trader-map} {:keys [symbol price stop-loss]}]
 
-  ;; cancel existing short order if it exists
-  (cancel-order! trader-map {:symbol symbol :type :limit :direction :short})
-
-  (let [volume     (compute-volume trader-map price price stop-loss)
-        instrument {:symbol    symbol
-                    :assetType "EQUITY"}
-        order-data (driver/ameritrade-post!
-                    trader-map
-                    (format "accounts/%s/orders" (->account-id trader-map))
-                    {:session              "NORMAL"
-                     :orderType            "LIMIT"
-                     :duration             "GOOD_TILL_CANCEL"
-                     :price                price
-                     :orderStrategyType    "TRIGGER"
-                     :orderLegCollection   [{:instruction "SELL_SHORT"
-                                             :quantity    (int volume)
-                                             :instrument  instrument}]
-                     :childOrderStrategies [{:session            "NORMAL"
-                                             :orderType          "STOP"
-                                             :stopPrice          stop-loss
-                                             :duration           "GOOD_TILL_CANCEL"
-                                             :orderStrategyType  "SINGLE"
-                                             :orderLegCollection [{:instruction "BUY_TO_COVER"
-                                                                   :quantity    (int volume)
-                                                                   :instrument  instrument}]}]})]
-    (if (<= 400 (:status order-data))
+  (let [volume (compute-volume trader-map price price stop-loss)]
+    (if (pos? (int volume))
       (do
-        (log/error (format "%s: failed to open short limit for %s" nickname symbol))
-        (log/error (:body order-data)))
-      (log/info (format "%s: shorting %.2f %s at price %.2f (stop-loss at %.2f)"
-                        nickname volume symbol price stop-loss)))))
+        ;; cancel existing short order if it exists
+       (cancel-order! trader-map {:symbol symbol :type :limit :direction :short})
+
+       (let [instrument {:symbol    symbol
+                         :assetType "EQUITY"}
+             order-data (driver/ameritrade-post!
+                         trader-map
+                         (format "accounts/%s/orders" (->account-id trader-map))
+                         {:session              "NORMAL"
+                          :orderType            "LIMIT"
+                          :duration             "GOOD_TILL_CANCEL"
+                          :price                price
+                          :orderStrategyType    "TRIGGER"
+                          :orderLegCollection   [{:instruction "SELL_SHORT"
+                                                  :quantity    (int volume)
+                                                  :instrument  instrument}]
+                          :childOrderStrategies [{:session            "NORMAL"
+                                                  :orderType          "STOP"
+                                                  :stopPrice          stop-loss
+                                                  :duration           "GOOD_TILL_CANCEL"
+                                                  :orderStrategyType  "SINGLE"
+                                                  :orderLegCollection [{:instruction "BUY_TO_COVER"
+                                                                        :quantity    (int volume)
+                                                                        :instrument  instrument}]}]})]
+         (if (<= 400 (:status order-data))
+           (do
+             (log/error (format "%s: failed to open short limit for %s" nickname symbol))
+             (log/error (:body order-data)))
+           (log/info (format "%s: shorting %.2f %s at price %.2f (stop-loss at %.2f)"
+                             nickname volume symbol price stop-loss)))))
+      (log/info (format "Not taking short on %s. Computed volume was < 1"
+                        symbol)))))
 
 (defmethod on-trade ["ameritrade" "short" "take-profit"]
   [trader-map {:keys [symbol percentage] :as ev}]

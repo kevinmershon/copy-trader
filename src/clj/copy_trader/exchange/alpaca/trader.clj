@@ -106,26 +106,30 @@
 (defmethod on-trade ["alpaca" "long" "limit"]
   [{nickname :nickname :as trader-map} {:keys [symbol price stop-loss]}]
 
-  ;; cancel existing long order if it exists
-  (cancel-order! trader-map {:symbol symbol :type :limit :direction :long})
-
-  (let [volume     (compute-volume trader-map price price stop-loss)
-        order-data (driver/alpaca-post!
-                    trader-map "orders"
-                    {:symbol        symbol
-                     :side          "buy"
-                     :type          "limit"
-                     :time_in_force "gtc"
-                     :limit_price   price
-                     :qty           (int volume)
-                     :order_class   "oto"
-                     :stop_loss     {:stop_price stop-loss}})]
-    (if (<= 400 (:status order-data))
+  (let [volume     (compute-volume trader-map price price stop-loss)]
+    (if (pos? (int volume))
       (do
-        (log/error (format "%s: failed to open long limit for %s" nickname symbol))
-        (log/error (:body order-data)))
-      (log/info (format "%s: longing %.2f %s at price %.2f (stop-loss at %.2f)"
-                        nickname volume symbol price stop-loss)))))
+        ;; cancel existing long order if it exists
+        (cancel-order! trader-map {:symbol symbol :type :limit :direction :long})
+
+        (let [order-data (driver/alpaca-post!
+                          trader-map "orders"
+                          {:symbol        symbol
+                           :side          "buy"
+                           :type          "limit"
+                           :time_in_force "gtc"
+                           :limit_price   price
+                           :qty           (int volume)
+                           :order_class   "oto"
+                           :stop_loss     {:stop_price stop-loss}})]
+          (if (<= 400 (:status order-data))
+            (do
+              (log/error (format "%s: failed to open long limit for %s" nickname symbol))
+              (log/error (:body order-data)))
+            (log/info (format "%s: longing %.2f %s at price %.2f (stop-loss at %.2f)"
+                              nickname volume symbol price stop-loss)))))
+      (log/info (format "Not taking long on %s. Computed volume was < 1"
+                        symbol)))))
 
 (defmethod on-trade ["alpaca" "long" "take-profit"]
   [trader-map {:keys [symbol percentage] :as ev}]
@@ -177,26 +181,30 @@
 (defmethod on-trade ["alpaca" "short" "limit"]
   [{nickname :nickname :as trader-map} {:keys [symbol price stop-loss]}]
 
-  ;; cancel existing short order if it exists
-  (cancel-order! trader-map {:symbol symbol :type :limit :direction :short})
-
-  (let [volume     (compute-volume trader-map price price stop-loss)
-        order-data (driver/alpaca-post!
-                    trader-map "orders"
-                    {:symbol        symbol
-                     :side          "sell"
-                     :type          "limit"
-                     :time_in_force "gtc"
-                     :limit_price   price
-                     :qty           (int volume)
-                     :order_class   "oto"
-                     :stop_loss     {:stop_price stop-loss}})]
-    (if (<= 400 (:status order-data))
+  (let [volume     (compute-volume trader-map price price stop-loss)]
+    (if (pos? (int volume))
       (do
-        (log/error (format "%s: failed to open short limit for %s" nickname symbol))
-        (log/error (:body order-data)))
-      (log/info (format "%s: shorting %.2f %s at price %.2f (stop-loss at %.2f)"
-                        nickname volume symbol price stop-loss)))))
+        ;; cancel existing short order if it exists
+        (cancel-order! trader-map {:symbol symbol :type :limit :direction :short})
+
+        (let [order-data (driver/alpaca-post!
+                          trader-map "orders"
+                          {:symbol        symbol
+                           :side          "sell"
+                           :type          "limit"
+                           :time_in_force "gtc"
+                           :limit_price   price
+                           :qty           (int volume)
+                           :order_class   "oto"
+                           :stop_loss     {:stop_price stop-loss}})]
+          (if (<= 400 (:status order-data))
+            (do
+              (log/error (format "%s: failed to open short limit for %s" nickname symbol))
+              (log/error (:body order-data)))
+            (log/info (format "%s: shorting %.2f %s at price %.2f (stop-loss at %.2f)"
+                              nickname volume symbol price stop-loss)))))
+      (log/info (format "Not taking short on %s. Computed volume was < 1"
+                        symbol)))))
 
 (defmethod on-trade ["alpaca" "short" "take-profit"]
   [trader-map {:keys [symbol percentage] :as ev}]

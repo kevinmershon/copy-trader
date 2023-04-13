@@ -1,5 +1,7 @@
 (ns copy-trader.exchange.trader
-  (:refer-clojure :exclude [symbol]))
+  (:refer-clojure :exclude [symbol])
+  (:require
+   [clojure.tools.logging :as log]))
 
 (defmulti with-balance
   (fn [{:keys [exchange] :as _trader}]
@@ -44,11 +46,17 @@
 (defn compute-position-size
   [{:keys [balance-usd leverage max_positions] :as trader-map}]
   (let [active                (active-positions trader-map)
-        active-position-count (->> active keys count)]
-    (if (and (< active-position-count max_positions))
-      (/ (* balance-usd leverage)
-         max_positions)
-      0.0)))
+        active-position-count (->> active keys count)
+        position-size         (if (< active-position-count max_positions)
+                                (/ (* balance-usd leverage)
+                                   max_positions)
+                                0.0)]
+    (log/info "Computed position size" {:balance-usd   balance-usd
+                                        :leverage      leverage
+                                        :max-positions max_positions
+                                        :position-size position-size})
+    ;; return
+    position-size))
 
 (defn compute-volume
   [{:keys [risk leverage max_positions] :as trader-map} price high low]
